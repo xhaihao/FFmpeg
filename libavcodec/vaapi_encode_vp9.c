@@ -46,6 +46,7 @@ typedef struct VAAPIEncodeVP9Context {
 typedef struct VAAPIEncodeVP9Options {
     int loop_filter_level;
     int loop_filter_sharpness;
+    int low_power;
 } VAAPIEncodeVP9Options;
 
 
@@ -217,6 +218,8 @@ static const VAAPIEncodeType vaapi_encode_type_vp9 = {
 static av_cold int vaapi_encode_vp9_init(AVCodecContext *avctx)
 {
     VAAPIEncodeContext *ctx = avctx->priv_data;
+    VAAPIEncodeVP9Options *opt =
+        (VAAPIEncodeVP9Options*)ctx->codec_options_data;
 
     ctx->codec = &vaapi_encode_type_vp9;
 
@@ -243,7 +246,18 @@ static av_cold int vaapi_encode_vp9_init(AVCodecContext *avctx)
                avctx->profile);
         return AVERROR(EINVAL);
     }
-    ctx->va_entrypoint = VAEntrypointEncSlice;
+
+    if (opt->low_power) {
+#if VA_CHECK_VERSION(1, 0, 0)
+        ctx->va_entrypoint = VAEntrypointEncSliceLP;
+#else
+        av_log(avctx, AV_LOG_ERROR, "Low-power encoding is not "
+               "supported with this VAAPI version.\n");
+        return AVERROR(EINVAL);
+#endif
+    } else {
+        ctx->va_entrypoint = VAEntrypointEncSlice;
+    }
 
     if (avctx->flags & AV_CODEC_FLAG_QSCALE) {
         ctx->va_rc_mode = VA_RC_CQP;
@@ -274,6 +288,9 @@ static const AVOption vaapi_encode_vp9_options[] = {
       OFFSET(loop_filter_level), AV_OPT_TYPE_INT, { .i64 = 16 }, 0, 63, FLAGS },
     { "loop_filter_sharpness", "Loop filter sharpness",
       OFFSET(loop_filter_sharpness), AV_OPT_TYPE_INT, { .i64 = 4 }, 0, 15, FLAGS },
+    { "low_power", "Use low-power encoding mode (experimental: only supported "
+      "on some platforms, does not support all features)",
+      OFFSET(low_power), AV_OPT_TYPE_INT, { .i64 = 0 }, 0, 1, FLAGS },
     { NULL },
 };
 
