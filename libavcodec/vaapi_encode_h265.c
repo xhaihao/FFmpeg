@@ -65,6 +65,7 @@ typedef struct VAAPIEncodeH265Options {
     int aud;
     int profile;
     int level;
+    int low_power;
 } VAAPIEncodeH265Options;
 
 
@@ -931,7 +932,18 @@ static av_cold int vaapi_encode_h265_init(AVCodecContext *avctx)
                avctx->profile);
         return AVERROR(EINVAL);
     }
-    ctx->va_entrypoint = VAEntrypointEncSlice;
+
+    if (opt->low_power) {
+#if VA_CHECK_VERSION(1, 0, 0)
+        ctx->va_entrypoint = VAEntrypointEncSliceLP;
+#else
+        av_log(avctx, AV_LOG_ERROR, "Low-power encoding is not "
+               "supported with this VAAPI version.\n");
+        return AVERROR(EINVAL);
+#endif
+    } else {
+        ctx->va_entrypoint = VAEntrypointEncSlice;
+    }
 
     if (avctx->bit_rate > 0) {
         if (avctx->rc_max_rate == avctx->bit_rate)
@@ -1002,6 +1014,10 @@ static const AVOption vaapi_encode_h265_options[] = {
     { LEVEL("6.1", 183) },
     { LEVEL("6.2", 186) },
 #undef LEVEL
+
+    { "low_power", "Use low-power encoding mode (experimental: only supported "
+      "on some platforms, does not support all features)",
+      OFFSET(low_power), AV_OPT_TYPE_INT, { .i64 = 0 }, 0, 1, FLAGS },
 
     { NULL },
 };
