@@ -942,7 +942,7 @@ static av_cold int vaapi_encode_h264_init(AVCodecContext *avctx)
 #else
         av_log(avctx, AV_LOG_ERROR, "Low-power encoding is not "
                "supported with this VAAPI version.\n");
-        return AVERROR(EINVAL);
+        return AVERROR(ENOSYS);
 #endif
     } else {
         ctx->va_entrypoint = VAEntrypointEncSlice;
