@@ -1114,6 +1114,10 @@ static av_cold int vaapi_encode_config_attributes(AVCodecContext *avctx)
                        ctx->va_packed_headers, attr[i].value);
                 ctx->va_packed_headers &= attr[i].value;
             }
+
+            if (!ctx->va_packed_headers)
+                continue;
+
             ctx->config_attributes[ctx->nb_config_attributes++] =
                 (VAConfigAttrib) {
                 .type  = VAConfigAttribEncPackedHeaders,
