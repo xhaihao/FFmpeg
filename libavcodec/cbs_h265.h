@@ -533,11 +533,17 @@ typedef struct H265RawSEIMasteringDiplayColourVolume {
     uint32_t min_display_mastering_luminance;
 } H265RawSEIMasteringDiplayColourVolume;
 
+typedef struct H265RawSEIContentLightLevelInfo {
+    uint16_t max_content_light_level;
+    uint16_t max_pic_average_light_level;
+} H265RawSEIContentLightLevelInfo;
+
 typedef struct H265RawSEIPayload {
     uint32_t payload_type;
     uint32_t payload_size;
     union {
         H265RawSEIMasteringDiplayColourVolume mastering_display;
+        H265RawSEIContentLightLevelInfo content_light_level;
         struct {
             uint8_t *data;
             size_t data_length;
