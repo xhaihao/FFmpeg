@@ -18,9 +18,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#ifdef MFX_DEFAULT_INC_PATH
+#include <mfxvideo.h>
+#include <mfxplugin.h>
+#include <mfxjpeg.h>
+#else
 #include <mfx/mfxvideo.h>
 #include <mfx/mfxplugin.h>
 #include <mfx/mfxjpeg.h>
+#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -36,7 +42,11 @@
 #include "qsv_internal.h"
 
 #if QSV_VERSION_ATLEAST(1, 12)
+#ifdef MFX_DEFAULT_INC_PATH
+#include "mfxvp8.h"
+#else
 #include "mfx/mfxvp8.h"
+#endif
 #endif
 
 int ff_qsv_codec_id_to_mfx(enum AVCodecID codec_id)

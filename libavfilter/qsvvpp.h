@@ -24,7 +24,11 @@
 #ifndef AVFILTER_QSVVPP_H
 #define AVFILTER_QSVVPP_H
 
+#ifdef MFX_DEFAULT_INC_PATH
+#include <mfxvideo.h>
+#else
 #include <mfx/mfxvideo.h>
+#endif
 
 #include "avfilter.h"
 

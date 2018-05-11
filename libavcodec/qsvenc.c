@@ -23,7 +23,12 @@
 
 #include <string.h>
 #include <sys/types.h>
+
+#ifdef MFX_DEFAULT_INC_PATH
+#include <mfxvideo.h>
+#else
 #include <mfx/mfxvideo.h>
+#endif
 
 #include "libavutil/common.h"
 #include "libavutil/hwcontext.h"

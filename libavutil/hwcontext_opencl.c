@@ -46,7 +46,11 @@
 #endif
 
 #if HAVE_OPENCL_VAAPI_INTEL_MEDIA
+#ifdef MFX_DEFAULT_INC_PATH
+#include <mfxstructures.h>
+#else
 #include <mfx/mfxstructures.h>
+#endif
 #include <va/va.h>
 #include <CL/va_ext.h>
 #include "hwcontext_vaapi.h"

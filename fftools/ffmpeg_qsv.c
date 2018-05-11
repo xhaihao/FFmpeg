@@ -16,7 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#ifdef MFX_DEFAULT_INC_PATH
+#include <mfxvideo.h>
+#else
 #include <mfx/mfxvideo.h>
+#endif
+
 #include <stdlib.h>
 
 #include "libavutil/dict.h"

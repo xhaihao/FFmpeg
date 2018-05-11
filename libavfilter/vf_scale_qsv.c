@@ -21,7 +21,11 @@
  * scale video filter - QSV
  */
 
+#ifdef MFX_DEFAULT_INC_PATH
+#include <mfxvideo.h>
+#else
 #include <mfx/mfxvideo.h>
+#endif
 
 #include <stdio.h>
 #include <string.h>

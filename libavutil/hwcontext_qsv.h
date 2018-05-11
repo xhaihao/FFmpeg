@@ -19,7 +19,11 @@
 #ifndef AVUTIL_HWCONTEXT_QSV_H
 #define AVUTIL_HWCONTEXT_QSV_H
 
+#ifdef MFX_DEFAULT_INC_PATH
+#include <mfxvideo.h>
+#else
 #include <mfx/mfxvideo.h>
+#endif
 
 /**
  * @file

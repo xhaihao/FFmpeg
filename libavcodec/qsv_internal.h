@@ -21,7 +21,11 @@
 #ifndef AVCODEC_QSV_INTERNAL_H
 #define AVCODEC_QSV_INTERNAL_H
 
+#ifdef MFX_DEFAULT_INC_PATH
+#include <mfxvideo.h>
+#else
 #include <mfx/mfxvideo.h>
+#endif
 
 #include "libavutil/frame.h"
 

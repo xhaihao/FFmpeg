@@ -19,7 +19,11 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifdef MFX_DEFAULT_INC_PATH
+#include <mfxvideo.h>
+#else
 #include <mfx/mfxvideo.h>
+#endif
 
 #include "config.h"
 
