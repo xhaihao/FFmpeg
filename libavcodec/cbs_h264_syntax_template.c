@@ -185,16 +185,16 @@ static int FUNC(vui_parameters)(CodedBitstreamContext *ctx, RWContext *rw,
         flag(motion_vectors_over_pic_boundaries_flag);
         ue(max_bytes_per_pic_denom, 0, 16);
         ue(max_bits_per_mb_denom,   0, 16);
-        ue(log2_max_mv_length_horizontal, 0, 16);
-        ue(log2_max_mv_length_vertical,   0, 16);
+        ue(log2_max_mv_length_horizontal, 0, 15);
+        ue(log2_max_mv_length_vertical,   0, 15);
         ue(max_num_reorder_frames,  0, H264_MAX_DPB_FRAMES);
         ue(max_dec_frame_buffering, 0, H264_MAX_DPB_FRAMES);
     } else {
         infer(motion_vectors_over_pic_boundaries_flag, 1);
         infer(max_bytes_per_pic_denom, 2);
         infer(max_bits_per_mb_denom,   1);
-        infer(log2_max_mv_length_horizontal, 16);
-        infer(log2_max_mv_length_vertical,   16);
+        infer(log2_max_mv_length_horizontal, 15);
+        infer(log2_max_mv_length_vertical,   15);
 
         if ((sps->profile_idc ==  44 || sps->profile_idc ==  86 ||
              sps->profile_idc == 110 || sps->profile_idc == 110 ||
