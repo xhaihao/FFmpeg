@@ -999,11 +999,11 @@ static void vaapi_unmap_from_drm(AVHWFramesContext *dst_fc,
     vaDestroySurfaces(dst_dev->display, &surface_id, 1);
 }
 
-static int vaapi_map_from_drm(AVHWFramesContext *src_fc, AVFrame *dst,
+static int vaapi_map_from_drm(AVHWFramesContext *dst_fc, AVFrame *dst,
                               const AVFrame *src, int flags)
 {
-    AVHWFramesContext      *dst_fc =
-        (AVHWFramesContext*)dst->hw_frames_ctx->data;
+    AVHWFramesContext      *src_fc =
+        (AVHWFramesContext*)src->hw_frames_ctx->data;
     AVVAAPIDeviceContext  *dst_dev = dst_fc->device_ctx->hwctx;
     const AVDRMFrameDescriptor *desc;
     const VAAPIFormatDescriptor *format_desc;
