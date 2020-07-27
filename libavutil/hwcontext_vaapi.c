@@ -1176,10 +1176,12 @@ static VASurfaceID vaapi_get_surface_from_drm_prime2(AVHWFramesContext *dst_fc,
     surface_desc.fourcc = va_fourcc;
     surface_desc.width = src_fc->width;
     surface_desc.height = src_fc->height;
-    surface_desc.num_objects = 1;
-    surface_desc.objects[0].fd = desc->objects[0].fd;
-    surface_desc.objects[0].size = desc->objects[0].size;
-    surface_desc.objects[0].drm_format_modifier = desc->objects[0].format_modifier;
+    surface_desc.num_objects = desc->nb_objects;
+    for (int i = 0; i < surface_desc.num_objects; i++) {
+        surface_desc.objects[i].fd = desc->objects[i].fd;
+        surface_desc.objects[i].size = desc->objects[i].size;
+        surface_desc.objects[i].drm_format_modifier = desc->objects[0].format_modifier;
+    }
     surface_desc.num_layers = desc->nb_layers;
 
     for (i = 0; i < desc->nb_layers; i++) {
@@ -1215,12 +1217,6 @@ static int vaapi_map_from_drm(AVHWFramesContext *dst_fc, AVFrame *dst,
     int err;
 
     desc = (AVDRMFrameDescriptor*)src->data[0];
-
-    if (desc->nb_objects != 1) {
-        av_log(dst_fc, AV_LOG_ERROR, "VAAPI can only map frames "
-               "made from a single DRM object.\n");
-        return AVERROR(EINVAL);
-    }
 
     surface_id = vaapi_get_surface_from_drm_prime2(dst_fc, dst, src);
 
