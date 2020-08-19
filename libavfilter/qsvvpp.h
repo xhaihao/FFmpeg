@@ -40,6 +40,8 @@
     ((MFX_VERSION.Major > (MAJOR)) ||                           \
     (MFX_VERSION.Major == (MAJOR) && MFX_VERSION.Minor >= (MINOR)))
 
+#define QSV_HAVE_OPAQUE  !QSV_VERSION_ATLEAST(2, 0)
+
 typedef struct QSVFrame {
     AVFrame          *frame;
     mfxFrameSurface1 surface;
@@ -64,10 +66,12 @@ typedef struct QSVVPPContext {
     mfxFrameSurface1  **surface_ptrs_in;
     mfxFrameSurface1  **surface_ptrs_out;
 
+#if QSV_HAVE_OPAQUE
     /** MFXVPP extern parameters */
     mfxExtOpaqueSurfaceAlloc opaque_alloc;
     mfxExtBuffer      **ext_buffers;
     int                 nb_ext_buffers;
+#endif
 
     int got_frame;
     int async_depth;
