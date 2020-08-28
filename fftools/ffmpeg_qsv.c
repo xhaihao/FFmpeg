@@ -49,7 +49,11 @@ static int qsv_device_init(InputStream *ist)
     int err;
     AVDictionary *dict = NULL;
 
-    if (qsv_device) {
+    if (ist->hwaccel_device) {
+        err = av_dict_set(&dict, "child_device", ist->hwaccel_device, 0);
+        if (err < 0)
+            return err;
+    } else if (qsv_device) {
         err = av_dict_set(&dict, "child_device", qsv_device, 0);
         if (err < 0)
             return err;
