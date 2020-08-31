@@ -49,6 +49,19 @@ static int qsv_device_init(InputStream *ist)
     int err;
     AVDictionary *dict = NULL;
 
+    if (!qsv_device && !ist->hwaccel_device) {
+        HWDevice *dev = hw_device_get_by_type(AV_HWDEVICE_TYPE_QSV);
+
+        if (dev) {
+            hw_device_ctx = av_buffer_ref(dev->device_ref);
+
+            if (!hw_device_ctx)
+                return AVERROR(ENOMEM);
+            else
+                return 0;
+        }
+    }
+
     if (ist->hwaccel_device) {
         err = av_dict_set(&dict, "child_device", ist->hwaccel_device, 0);
         if (err < 0)

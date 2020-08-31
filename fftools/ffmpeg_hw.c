@@ -27,7 +27,7 @@
 static int nb_hw_devices;
 static HWDevice **hw_devices;
 
-static HWDevice *hw_device_get_by_type(enum AVHWDeviceType type)
+HWDevice *hw_device_get_by_type(enum AVHWDeviceType type)
 {
     HWDevice *found = NULL;
     int i;
