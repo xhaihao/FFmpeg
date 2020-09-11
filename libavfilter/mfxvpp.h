@@ -21,8 +21,8 @@
  * Intel Quick Sync Video VPP base function
  */
 
-#ifndef AVFILTER_QSVVPP_H
-#define AVFILTER_QSVVPP_H
+#ifndef AVFILTER_MFXVPP_H
+#define AVFILTER_MFXVPP_H
 
 #include <mfx/mfxvideo.h>
 
@@ -39,14 +39,14 @@
     ((MFX_VERSION.Major > (MAJOR)) ||                           \
     (MFX_VERSION.Major == (MAJOR) && MFX_VERSION.Minor >= (MINOR)))
 
-typedef struct QSVVPPContext QSVVPPContext;
+typedef struct MFXVPPContext MFXVPPContext;
 
-typedef struct QSVVPPCrop {
+typedef struct MFXVPPCrop {
     int in_idx;        ///< Input index
     int x, y, w, h;    ///< Crop rectangle
-} QSVVPPCrop;
+} MFXVPPCrop;
 
-typedef struct QSVVPPParam {
+typedef struct MFXVPPParam {
     /* default is ff_filter_frame */
     int (*filter_frame)(AVFilterLink *outlink, AVFrame *frame);
 
@@ -59,16 +59,16 @@ typedef struct QSVVPPParam {
 
     /* Crop information for each input, if needed */
     int num_crop;
-    QSVVPPCrop *crop;
-} QSVVPPParam;
+    MFXVPPCrop *crop;
+} MFXVPPParam;
 
 /* create and initialize the QSV session */
-int ff_qsvvpp_create(AVFilterContext *avctx, QSVVPPContext **vpp, QSVVPPParam *param);
+int ff_mfxvpp_create(AVFilterContext *avctx, MFXVPPContext **vpp, MFXVPPParam *param);
 
 /* release the resources (eg.surfaces) */
-int ff_qsvvpp_free(QSVVPPContext **vpp);
+int ff_mfxvpp_free(MFXVPPContext **vpp);
 
 /* vpp filter frame and call the cb if needed */
-int ff_qsvvpp_filter_frame(QSVVPPContext *vpp, AVFilterLink *inlink, AVFrame *frame);
+int ff_mfxvpp_filter_frame(MFXVPPContext *vpp, AVFilterLink *inlink, AVFrame *frame);
 
-#endif /* AVFILTER_QSVVPP_H */
+#endif /* AVFILTER_MFXVPP_H */

@@ -37,7 +37,7 @@
 #include "video.h"
 
 #include "framesync.h"
-#include "qsvvpp.h"
+#include "mfxvpp.h"
 
 #define MAIN    0
 #define OVERLAY 1
@@ -61,8 +61,8 @@ typedef struct QSVOverlayContext {
     const AVClass      *class;
 
     FFFrameSync fs;
-    QSVVPPContext      *qsv;
-    QSVVPPParam        qsv_param;
+    MFXVPPContext      *qsv;
+    MFXVPPParam        qsv_param;
     mfxExtVPPComposite comp_conf;
     double             var_values[VAR_VARS_NB];
 
@@ -238,7 +238,7 @@ static int process_frame(FFFrameSync *fs)
     for (i = 0; i < ctx->nb_inputs; i++) {
         ret = ff_framesync_get_frame(fs, i, &frame, 0);
         if (ret == 0)
-            ret = ff_qsvvpp_filter_frame(s->qsv, ctx->inputs[i], frame);
+            ret = ff_mfxvpp_filter_frame(s->qsv, ctx->inputs[i], frame);
         if (ret < 0 && ret != AVERROR(EAGAIN))
             break;
     }
@@ -300,12 +300,12 @@ static int config_output(AVFilterLink *outlink)
     if (ret < 0)
         return ret;
 
-    return ff_qsvvpp_create(ctx, &vpp->qsv, &vpp->qsv_param);
+    return ff_mfxvpp_create(ctx, &vpp->qsv, &vpp->qsv_param);
 }
 
 /*
- * Callback for qsvvpp
- * @Note: qsvvpp composition does not generate PTS for result frame.
+ * Callback for mfxvpp
+ * @Note: mfxvpp composition does not generate PTS for result frame.
  *        so we assign the PTS from framesync to the output frame.
  */
 
@@ -331,7 +331,7 @@ static int overlay_qsv_init(AVFilterContext *ctx)
     if (!vpp->comp_conf.InputStream)
         return AVERROR(ENOMEM);
 
-    /* initialize QSVVPP params */
+    /* initialize MFXVPP params */
     vpp->qsv_param.filter_frame = filter_callback;
     vpp->qsv_param.ext_buf      = av_mallocz(sizeof(*vpp->qsv_param.ext_buf));
     if (!vpp->qsv_param.ext_buf)
@@ -349,7 +349,7 @@ static av_cold void overlay_qsv_uninit(AVFilterContext *ctx)
 {
     QSVOverlayContext *vpp = ctx->priv;
 
-    ff_qsvvpp_free(&vpp->qsv);
+    ff_mfxvpp_free(&vpp->qsv);
     ff_framesync_uninit(&vpp->fs);
     av_freep(&vpp->comp_conf.InputStream);
     av_freep(&vpp->qsv_param.ext_buf);

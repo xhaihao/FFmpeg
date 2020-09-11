@@ -36,7 +36,7 @@
 #include "libavutil/opt.h"
 #include "libavutil/pixdesc.h"
 #include "libavutil/time.h"
-#include "libavfilter/qsvvpp.h"
+#include "libavfilter/mfxvpp.h"
 
 #include "avfilter.h"
 #include "formats.h"

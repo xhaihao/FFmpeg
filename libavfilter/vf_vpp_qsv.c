@@ -35,7 +35,7 @@
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
 
-#include "qsvvpp.h"
+#include "mfxvpp.h"
 #include "transpose.h"
 
 #define OFFSET(x) offsetof(VPPContext, x)
@@ -49,7 +49,7 @@
 typedef struct VPPContext{
     const AVClass *class;
 
-    QSVVPPContext *qsv;
+    MFXVPPContext *qsv;
 
     /* Video Enhancement Algorithms */
     mfxExtVPPDeinterlacing  deinterlace_conf;
@@ -289,8 +289,8 @@ static int config_output(AVFilterLink *outlink)
 {
     AVFilterContext *ctx = outlink->src;
     VPPContext      *vpp = ctx->priv;
-    QSVVPPParam     param = { NULL };
-    QSVVPPCrop      crop  = { 0 };
+    MFXVPPParam     param = { NULL };
+    MFXVPPCrop      crop  = { 0 };
     mfxExtBuffer    *ext_buf[ENH_FILTERS_COUNT];
     AVFilterLink    *inlink = ctx->inputs[0];
     enum AVPixelFormat in_format;
@@ -457,7 +457,7 @@ static int config_output(AVFilterLink *outlink)
     if (vpp->use_frc || vpp->use_crop || vpp->deinterlace || vpp->denoise ||
         vpp->detail || vpp->procamp || vpp->rotate || vpp->hflip ||
         inlink->w != outlink->w || inlink->h != outlink->h || in_format != vpp->out_format)
-        return ff_qsvvpp_create(ctx, &vpp->qsv, &param);
+        return ff_mfxvpp_create(ctx, &vpp->qsv, &param);
     else {
         av_log(ctx, AV_LOG_VERBOSE, "qsv vpp pass through mode.\n");
         if (inlink->hw_frames_ctx)
@@ -475,7 +475,7 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *picref)
     AVFilterLink     *outlink = ctx->outputs[0];
 
     if (vpp->qsv) {
-        ret = ff_qsvvpp_filter_frame(vpp->qsv, inlink, picref);
+        ret = ff_mfxvpp_filter_frame(vpp->qsv, inlink, picref);
         av_frame_free(&picref);
     } else {
         if (picref->pts != AV_NOPTS_VALUE)
@@ -516,7 +516,7 @@ static av_cold void vpp_uninit(AVFilterContext *ctx)
 {
     VPPContext *vpp = ctx->priv;
 
-    ff_qsvvpp_free(&vpp->qsv);
+    ff_mfxvpp_free(&vpp->qsv);
 }
 
 static const AVClass vpp_class = {

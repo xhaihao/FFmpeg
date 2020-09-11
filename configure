@@ -2408,7 +2408,7 @@ CONFIG_EXTRA="
     qsv
     qsvdec
     qsvenc
-    qsvvpp
+    mfxvpp
     rangecoder
     riffdec
     riffenc
@@ -3029,7 +3029,7 @@ omx_rpi_select="omx"
 qsv_deps="libmfx"
 qsvdec_select="qsv"
 qsvenc_select="qsv"
-qsvvpp_select="qsv"
+mfxvpp_select="libmfx"
 vaapi_encode_deps="vaapi"
 v4l2_m2m_deps="linux_videodev2_h sem_timedwait"
 
@@ -3573,7 +3573,7 @@ ocv_filter_deps="libopencv"
 openclsrc_filter_deps="opencl"
 overlay_opencl_filter_deps="opencl"
 overlay_qsv_filter_deps="libmfx"
-overlay_qsv_filter_select="qsvvpp"
+overlay_qsv_filter_select="mfxvpp"
 overlay_vulkan_filter_deps="vulkan libglslang"
 owdenoise_filter_deps="gpl"
 pad_opencl_filter_deps="opencl"
@@ -3646,7 +3646,7 @@ zscale_filter_deps="libzimg const_nan"
 scale_vaapi_filter_deps="vaapi"
 scale_vulkan_filter_deps="vulkan libglslang"
 vpp_qsv_filter_deps="libmfx"
-vpp_qsv_filter_select="qsvvpp"
+vpp_qsv_filter_select="mfxvpp"
 xfade_opencl_filter_deps="opencl"
 yadif_cuda_filter_deps="ffnvcodec"
 yadif_cuda_filter_deps_any="cuda_nvcc cuda_llvm"

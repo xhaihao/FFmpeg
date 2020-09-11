@@ -29,7 +29,7 @@
 #include "libavutil/pixdesc.h"
 
 #include "internal.h"
-#include "qsvvpp.h"
+#include "mfxvpp.h"
 #include "video.h"
 
 #define IS_VIDEO_MEMORY(mode)  (mode & (MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET | \
@@ -45,7 +45,7 @@ typedef struct QSVFrame {
 } QSVFrame;
 
 /* abstract struct for all QSV filters */
-struct QSVVPPContext {
+struct MFXVPPContext {
     mfxSession          session;
     int (*filter_frame) (AVFilterLink *outlink, AVFrame *frame);/* callback */
     enum AVPixelFormat  out_sw_format;   /* Real output format */
@@ -80,7 +80,7 @@ static const AVRational default_tb = { 1, 90000 };
 static mfxStatus frame_alloc(mfxHDL pthis, mfxFrameAllocRequest *req,
                              mfxFrameAllocResponse *resp)
 {
-    QSVVPPContext *s = pthis;
+    MFXVPPContext *s = pthis;
     int i;
 
     if (!(req->Type & MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET) ||
@@ -275,7 +275,7 @@ static QSVFrame *get_free_frame(QSVFrame **list)
 }
 
 /* get the input surface */
-static QSVFrame *submit_frame(QSVVPPContext *s, AVFilterLink *inlink, AVFrame *picref)
+static QSVFrame *submit_frame(MFXVPPContext *s, AVFilterLink *inlink, AVFrame *picref)
 {
     QSVFrame        *qsv_frame;
     AVFilterContext *ctx = inlink->dst;
@@ -294,7 +294,7 @@ static QSVFrame *submit_frame(QSVVPPContext *s, AVFilterLink *inlink, AVFrame *p
      */
     if (!IS_SYSTEM_MEMORY(s->in_mem_mode)) {
         if (picref->format != AV_PIX_FMT_QSV) {
-            av_log(ctx, AV_LOG_ERROR, "QSVVPP gets a wrong frame.\n");
+            av_log(ctx, AV_LOG_ERROR, "MFXVPP gets a wrong frame.\n");
             return NULL;
         }
         qsv_frame->frame   = av_frame_clone(picref);
@@ -347,7 +347,7 @@ static QSVFrame *submit_frame(QSVVPPContext *s, AVFilterLink *inlink, AVFrame *p
 }
 
 /* get the output surface */
-static QSVFrame *query_frame(QSVVPPContext *s, AVFilterLink *outlink)
+static QSVFrame *query_frame(MFXVPPContext *s, AVFilterLink *outlink)
 {
     AVFilterContext *ctx = outlink->src;
     QSVFrame        *out_frame;
@@ -399,7 +399,7 @@ static QSVFrame *query_frame(QSVVPPContext *s, AVFilterLink *outlink)
 }
 
 /* create the QSV session */
-static int init_vpp_session(AVFilterContext *avctx, QSVVPPContext *s)
+static int init_vpp_session(AVFilterContext *avctx, MFXVPPContext *s)
 {
     AVFilterLink                 *inlink = avctx->inputs[0];
     AVFilterLink                *outlink = avctx->outputs[0];
@@ -558,11 +558,11 @@ static int init_vpp_session(AVFilterContext *avctx, QSVVPPContext *s)
     return 0;
 }
 
-int ff_qsvvpp_create(AVFilterContext *avctx, QSVVPPContext **vpp, QSVVPPParam *param)
+int ff_mfxvpp_create(AVFilterContext *avctx, MFXVPPContext **vpp, MFXVPPParam *param)
 {
     int i;
     int ret;
-    QSVVPPContext *s;
+    MFXVPPContext *s;
 
     s = av_mallocz(sizeof(*s));
     if (!s)
@@ -593,7 +593,7 @@ int ff_qsvvpp_create(AVFilterContext *avctx, QSVVPPContext **vpp, QSVVPPParam *p
 
     /* Update input's frame info according to crop */
     for (i = 0; i < param->num_crop; i++) {
-        QSVVPPCrop *crop = param->crop + i;
+        MFXVPPCrop *crop = param->crop + i;
         if (crop->in_idx > avctx->nb_inputs) {
             ret = AVERROR(EINVAL);
             goto failed;
@@ -648,7 +648,7 @@ int ff_qsvvpp_create(AVFilterContext *avctx, QSVVPPContext **vpp, QSVVPPParam *p
 
     ret = MFXVideoVPP_Init(s->session, &s->vpp_param);
     if (ret < 0) {
-        av_log(avctx, AV_LOG_ERROR, "Failed to create a qsvvpp, ret = %d.\n", ret);
+        av_log(avctx, AV_LOG_ERROR, "Failed to create a mfxvpp, ret = %d.\n", ret);
         goto failed;
     }
 
@@ -656,14 +656,14 @@ int ff_qsvvpp_create(AVFilterContext *avctx, QSVVPPContext **vpp, QSVVPPParam *p
     return 0;
 
 failed:
-    ff_qsvvpp_free(&s);
+    ff_mfxvpp_free(&s);
 
     return ret;
 }
 
-int ff_qsvvpp_free(QSVVPPContext **vpp)
+int ff_mfxvpp_free(MFXVPPContext **vpp)
 {
-    QSVVPPContext *s = *vpp;
+    MFXVPPContext *s = *vpp;
 
     if (!s)
         return 0;
@@ -685,7 +685,7 @@ int ff_qsvvpp_free(QSVVPPContext **vpp)
     return 0;
 }
 
-int ff_qsvvpp_filter_frame(QSVVPPContext *s, AVFilterLink *inlink, AVFrame *picref)
+int ff_mfxvpp_filter_frame(MFXVPPContext *s, AVFilterLink *inlink, AVFrame *picref)
 {
     AVFilterContext  *ctx     = inlink->dst;
     AVFilterLink     *outlink = ctx->outputs[0];
