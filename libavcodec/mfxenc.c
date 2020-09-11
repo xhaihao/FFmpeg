@@ -39,7 +39,7 @@
 #include "packet_internal.h"
 #include "qsv.h"
 #include "qsv_internal.h"
-#include "qsvenc.h"
+#include "mfxenc.h"
 
 static const struct {
     mfxU16 profile;
@@ -129,7 +129,7 @@ static const char *print_threestate(mfxU16 val)
     return "unknown";
 }
 
-static void dump_video_param(AVCodecContext *avctx, QSVEncContext *q,
+static void dump_video_param(AVCodecContext *avctx, MFXEncContext *q,
                              mfxExtBuffer **coding_opts)
 {
     mfxInfoMFX *info = &q->param.mfx;
@@ -297,7 +297,7 @@ static void dump_video_param(AVCodecContext *avctx, QSVEncContext *q,
 
 }
 
-static int select_rc_mode(AVCodecContext *avctx, QSVEncContext *q)
+static int select_rc_mode(AVCodecContext *avctx, MFXEncContext *q)
 {
     const char *rc_desc;
     mfxU16      rc_mode;
@@ -386,7 +386,7 @@ static int select_rc_mode(AVCodecContext *avctx, QSVEncContext *q)
     return 0;
 }
 
-static int check_enc_param(AVCodecContext *avctx, QSVEncContext *q)
+static int check_enc_param(AVCodecContext *avctx, MFXEncContext *q)
 {
     mfxVideoParam param_out = { .mfx.CodecId = q->param.mfx.CodecId };
     mfxStatus ret;
@@ -417,7 +417,7 @@ static int check_enc_param(AVCodecContext *avctx, QSVEncContext *q)
     return 1;
 }
 
-static int init_video_param_jpeg(AVCodecContext *avctx, QSVEncContext *q)
+static int init_video_param_jpeg(AVCodecContext *avctx, MFXEncContext *q)
 {
     enum AVPixelFormat sw_format = avctx->pix_fmt == AV_PIX_FMT_QSV ?
                                    avctx->sw_pix_fmt : avctx->pix_fmt;
@@ -481,7 +481,7 @@ static int init_video_param_jpeg(AVCodecContext *avctx, QSVEncContext *q)
     return 0;
 }
 
-static int init_video_param(AVCodecContext *avctx, QSVEncContext *q)
+static int init_video_param(AVCodecContext *avctx, MFXEncContext *q)
 {
     enum AVPixelFormat sw_format = avctx->pix_fmt == AV_PIX_FMT_QSV ?
                                    avctx->sw_pix_fmt : avctx->pix_fmt;
@@ -814,7 +814,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
     return 0;
 }
 
-static int qsv_retrieve_enc_jpeg_params(AVCodecContext *avctx, QSVEncContext *q)
+static int qsv_retrieve_enc_jpeg_params(AVCodecContext *avctx, MFXEncContext *q)
 {
     int ret = 0;
 
@@ -832,7 +832,7 @@ static int qsv_retrieve_enc_jpeg_params(AVCodecContext *avctx, QSVEncContext *q)
     return 0;
 }
 
-static int qsv_retrieve_enc_vp9_params(AVCodecContext *avctx, QSVEncContext *q)
+static int qsv_retrieve_enc_vp9_params(AVCodecContext *avctx, MFXEncContext *q)
 {
     int ret = 0;
 #if QSV_HAVE_EXT_VP9_PARAM
@@ -881,7 +881,7 @@ static int qsv_retrieve_enc_vp9_params(AVCodecContext *avctx, QSVEncContext *q)
     return 0;
 }
 
-static int qsv_retrieve_enc_params(AVCodecContext *avctx, QSVEncContext *q)
+static int qsv_retrieve_enc_params(AVCodecContext *avctx, MFXEncContext *q)
 {
     AVCPBProperties *cpb_props;
 
@@ -1008,7 +1008,7 @@ static int qsv_retrieve_enc_params(AVCodecContext *avctx, QSVEncContext *q)
     return 0;
 }
 
-static int qsv_init_opaque_alloc(AVCodecContext *avctx, QSVEncContext *q)
+static int qsv_init_opaque_alloc(AVCodecContext *avctx, MFXEncContext *q)
 {
     AVQSVContext *qsv = avctx->hwaccel_context;
     mfxFrameSurface1 *surfaces;
@@ -1045,7 +1045,7 @@ static int qsv_init_opaque_alloc(AVCodecContext *avctx, QSVEncContext *q)
     return 0;
 }
 
-static int qsvenc_init_session(AVCodecContext *avctx, QSVEncContext *q)
+static int mfxenc_init_session(AVCodecContext *avctx, MFXEncContext *q)
 {
     int ret;
 
@@ -1097,7 +1097,7 @@ static inline unsigned int qsv_fifo_size(const AVFifoBuffer* fifo)
     return av_fifo_size(fifo)/qsv_fifo_item_size();
 }
 
-int ff_qsv_enc_init(AVCodecContext *avctx, QSVEncContext *q)
+int ff_qsv_enc_init(AVCodecContext *avctx, MFXEncContext *q)
 {
     int iopattern = 0;
     int opaque_alloc = 0;
@@ -1133,7 +1133,7 @@ int ff_qsv_enc_init(AVCodecContext *avctx, QSVEncContext *q)
         iopattern = MFX_IOPATTERN_IN_SYSTEM_MEMORY;
     q->param.IOPattern = iopattern;
 
-    ret = qsvenc_init_session(avctx, q);
+    ret = mfxenc_init_session(avctx, q);
     if (ret < 0)
         return ret;
 
@@ -1243,7 +1243,7 @@ static void free_encoder_ctrl_payloads(mfxEncodeCtrl* enc_ctrl)
     }
 }
 
-static void clear_unused_frames(QSVEncContext *q)
+static void clear_unused_frames(MFXEncContext *q)
 {
     QSVFrame *cur = q->work_frames;
     while (cur) {
@@ -1258,7 +1258,7 @@ static void clear_unused_frames(QSVEncContext *q)
     }
 }
 
-static int get_free_frame(QSVEncContext *q, QSVFrame **f)
+static int get_free_frame(MFXEncContext *q, QSVFrame **f)
 {
     QSVFrame *frame, **last;
 
@@ -1298,7 +1298,7 @@ static int get_free_frame(QSVEncContext *q, QSVFrame **f)
     return 0;
 }
 
-static int submit_frame(QSVEncContext *q, const AVFrame *frame,
+static int submit_frame(MFXEncContext *q, const AVFrame *frame,
                         QSVFrame **new_frame)
 {
     QSVFrame *qf;
@@ -1377,7 +1377,7 @@ static int submit_frame(QSVEncContext *q, const AVFrame *frame,
     return 0;
 }
 
-static void print_interlace_msg(AVCodecContext *avctx, QSVEncContext *q)
+static void print_interlace_msg(AVCodecContext *avctx, MFXEncContext *q)
 {
     if (q->param.mfx.CodecId == MFX_CODEC_AVC) {
         if (q->param.mfx.CodecProfile == MFX_PROFILE_AVC_BASELINE ||
@@ -1389,7 +1389,7 @@ static void print_interlace_msg(AVCodecContext *avctx, QSVEncContext *q)
     }
 }
 
-static int encode_frame(AVCodecContext *avctx, QSVEncContext *q,
+static int encode_frame(AVCodecContext *avctx, MFXEncContext *q,
                         const AVFrame *frame)
 {
     AVPacket new_pkt = { 0 };
@@ -1517,7 +1517,7 @@ static int encode_frame(AVCodecContext *avctx, QSVEncContext *q,
     return 0;
 }
 
-int ff_qsv_encode(AVCodecContext *avctx, QSVEncContext *q,
+int ff_qsv_encode(AVCodecContext *avctx, MFXEncContext *q,
                   AVPacket *pkt, const AVFrame *frame, int *got_packet)
 {
     int ret;
@@ -1609,7 +1609,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
     return 0;
 }
 
-int ff_qsv_enc_close(AVCodecContext *avctx, QSVEncContext *q)
+int ff_qsv_enc_close(AVCodecContext *avctx, MFXEncContext *q)
 {
     QSVFrame *cur;
 

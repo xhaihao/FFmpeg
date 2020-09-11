@@ -20,8 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AVCODEC_QSVENC_H
-#define AVCODEC_QSVENC_H
+#ifndef AVCODEC_MFXENC_H
+#define AVCODEC_MFXENC_H
 
 #include <stdint.h>
 #include <sys/types.h>
@@ -102,7 +102,7 @@ extern const AVCodecHWConfigInternal *ff_qsv_enc_hw_configs[];
 
 typedef int SetEncodeCtrlCB (AVCodecContext *avctx,
                              const AVFrame *frame, mfxEncodeCtrl* enc_ctrl);
-typedef struct QSVEncContext {
+typedef struct MFXEncContext {
     AVCodecContext *avctx;
 
     QSVFrame *work_frames;
@@ -201,13 +201,13 @@ typedef struct QSVEncContext {
     char *load_plugins;
     SetEncodeCtrlCB *set_encode_ctrl_cb;
     int forced_idr;
-} QSVEncContext;
+} MFXEncContext;
 
-int ff_qsv_enc_init(AVCodecContext *avctx, QSVEncContext *q);
+int ff_qsv_enc_init(AVCodecContext *avctx, MFXEncContext *q);
 
-int ff_qsv_encode(AVCodecContext *avctx, QSVEncContext *q,
+int ff_qsv_encode(AVCodecContext *avctx, MFXEncContext *q,
                   AVPacket *pkt, const AVFrame *frame, int *got_packet);
 
-int ff_qsv_enc_close(AVCodecContext *avctx, QSVEncContext *q);
+int ff_qsv_enc_close(AVCodecContext *avctx, MFXEncContext *q);
 
-#endif /* AVCODEC_QSVENC_H */
+#endif /* AVCODEC_MFXENC_H */

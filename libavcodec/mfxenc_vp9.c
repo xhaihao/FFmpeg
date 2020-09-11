@@ -1,5 +1,5 @@
 /*
- * Intel MediaSDK QSV based MJPEG encoder
+ * Intel MediaSDK QSV based VP9 encoder
  *
  * This file is part of FFmpeg.
  *
@@ -31,16 +31,17 @@
 #include "internal.h"
 #include "qsv.h"
 #include "qsv_internal.h"
-#include "qsvenc.h"
+#include "mfxenc.h"
 
-typedef struct QSVMJPEGEncContext {
+typedef struct QSVVP9EncContext {
     AVClass *class;
-    QSVEncContext qsv;
-} QSVMJPEGEncContext;
+    MFXEncContext qsv;
+} QSVVP9EncContext;
 
 static av_cold int qsv_enc_init(AVCodecContext *avctx)
 {
-    QSVMJPEGEncContext *q = avctx->priv_data;
+    QSVVP9EncContext *q = avctx->priv_data;
+    q->qsv.low_power = 1;
 
     return ff_qsv_enc_init(avctx, &q->qsv);
 }
@@ -48,52 +49,66 @@ static av_cold int qsv_enc_init(AVCodecContext *avctx)
 static int qsv_enc_frame(AVCodecContext *avctx, AVPacket *pkt,
                          const AVFrame *frame, int *got_packet)
 {
-    QSVMJPEGEncContext *q = avctx->priv_data;
+    QSVVP9EncContext *q = avctx->priv_data;
 
     return ff_qsv_encode(avctx, &q->qsv, pkt, frame, got_packet);
 }
 
 static av_cold int qsv_enc_close(AVCodecContext *avctx)
 {
-    QSVMJPEGEncContext *q = avctx->priv_data;
+    QSVVP9EncContext *q = avctx->priv_data;
 
     return ff_qsv_enc_close(avctx, &q->qsv);
 }
 
-#define OFFSET(x) offsetof(QSVMJPEGEncContext, x)
+#define OFFSET(x) offsetof(QSVVP9EncContext, x)
 #define VE AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_ENCODING_PARAM
 static const AVOption options[] = {
-    { "async_depth", "Maximum processing parallelism", OFFSET(qsv.async_depth), AV_OPT_TYPE_INT, { .i64 = ASYNC_DEPTH_DEFAULT }, 1, INT_MAX, VE },
+    QSV_COMMON_OPTS
+
+    { "profile",   NULL, OFFSET(qsv.profile), AV_OPT_TYPE_INT,   { .i64 = MFX_PROFILE_UNKNOWN },   0,       INT_MAX,  VE,  "profile" },
+    { "unknown",   NULL, 0,                   AV_OPT_TYPE_CONST, { .i64 = MFX_PROFILE_UNKNOWN},   INT_MIN,  INT_MAX,  VE,  "profile" },
+    { "profile0",  NULL, 0,                   AV_OPT_TYPE_CONST, { .i64 = MFX_PROFILE_VP9_0   },  INT_MIN,  INT_MAX,  VE,  "profile" },
+    { "profile1",  NULL, 0,                   AV_OPT_TYPE_CONST, { .i64 = MFX_PROFILE_VP9_1   },  INT_MIN,  INT_MAX,  VE,  "profile" },
+    { "profile2",  NULL, 0,                   AV_OPT_TYPE_CONST, { .i64 = MFX_PROFILE_VP9_2   },  INT_MIN,  INT_MAX,  VE,  "profile" },
+    { "profile3",  NULL, 0,                   AV_OPT_TYPE_CONST, { .i64 = MFX_PROFILE_VP9_3   },  INT_MIN,  INT_MAX,  VE,  "profile" },
+
     { NULL },
 };
 
 static const AVClass class = {
-    .class_name = "mjpeg_qsv encoder",
+    .class_name = "vp9_qsv encoder",
     .item_name  = av_default_item_name,
     .option     = options,
     .version    = LIBAVUTIL_VERSION_INT,
 };
 
 static const AVCodecDefault qsv_enc_defaults[] = {
-    { "global_quality",  "80" },
+    { "b",         "1M"    },
+    { "refs",      "0"     },
+    { "g",         "250"   },
+    { "trellis",   "-1"    },
+    { "flags",     "+cgop" },
     { NULL },
 };
 
-AVCodec ff_mjpeg_qsv_encoder = {
-    .name           = "mjpeg_qsv",
-    .long_name      = NULL_IF_CONFIG_SMALL("MJPEG (Intel Quick Sync Video acceleration)"),
-    .priv_data_size = sizeof(QSVMJPEGEncContext),
+AVCodec ff_vp9_qsv_encoder = {
+    .name           = "vp9_qsv",
+    .long_name      = NULL_IF_CONFIG_SMALL("VP9 video (Intel Quick Sync Video acceleration)"),
+    .priv_data_size = sizeof(QSVVP9EncContext),
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = AV_CODEC_ID_MJPEG,
+    .id             = AV_CODEC_ID_VP9,
     .init           = qsv_enc_init,
     .encode2        = qsv_enc_frame,
     .close          = qsv_enc_close,
     .capabilities   = AV_CODEC_CAP_DELAY | AV_CODEC_CAP_HYBRID,
     .pix_fmts       = (const enum AVPixelFormat[]){ AV_PIX_FMT_NV12,
+                                                    AV_PIX_FMT_P010,
                                                     AV_PIX_FMT_QSV,
                                                     AV_PIX_FMT_NONE },
     .priv_class     = &class,
     .defaults       = qsv_enc_defaults,
+    .caps_internal  = FF_CODEC_CAP_INIT_CLEANUP,
     .wrapper_name   = "qsv",
     .hw_configs     = ff_qsv_enc_hw_configs,
 };

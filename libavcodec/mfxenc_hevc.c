@@ -36,7 +36,7 @@
 #include "internal.h"
 #include "qsv.h"
 #include "qsv_internal.h"
-#include "qsvenc.h"
+#include "mfxenc.h"
 
 enum LoadPlugin {
     LOAD_PLUGIN_NONE,
@@ -46,11 +46,11 @@ enum LoadPlugin {
 
 typedef struct QSVHEVCEncContext {
     AVClass *class;
-    QSVEncContext qsv;
+    MFXEncContext qsv;
     int load_plugin;
 } QSVHEVCEncContext;
 
-static int generate_fake_vps(QSVEncContext *q, AVCodecContext *avctx)
+static int generate_fake_vps(MFXEncContext *q, AVCodecContext *avctx)
 {
     GetByteContext gbc;
     PutByteContext pbc;

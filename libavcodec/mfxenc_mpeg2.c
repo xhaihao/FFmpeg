@@ -1,5 +1,5 @@
 /*
- * Intel MediaSDK QSV based VP9 encoder
+ * Intel MediaSDK QSV based MPEG-2 encoder
  *
  * This file is part of FFmpeg.
  *
@@ -31,17 +31,16 @@
 #include "internal.h"
 #include "qsv.h"
 #include "qsv_internal.h"
-#include "qsvenc.h"
+#include "mfxenc.h"
 
-typedef struct QSVVP9EncContext {
+typedef struct QSVMpeg2EncContext {
     AVClass *class;
-    QSVEncContext qsv;
-} QSVVP9EncContext;
+    MFXEncContext qsv;
+} QSVMpeg2EncContext;
 
 static av_cold int qsv_enc_init(AVCodecContext *avctx)
 {
-    QSVVP9EncContext *q = avctx->priv_data;
-    q->qsv.low_power = 1;
+    QSVMpeg2EncContext *q = avctx->priv_data;
 
     return ff_qsv_enc_init(avctx, &q->qsv);
 }
@@ -49,35 +48,34 @@ static av_cold int qsv_enc_init(AVCodecContext *avctx)
 static int qsv_enc_frame(AVCodecContext *avctx, AVPacket *pkt,
                          const AVFrame *frame, int *got_packet)
 {
-    QSVVP9EncContext *q = avctx->priv_data;
+    QSVMpeg2EncContext *q = avctx->priv_data;
 
     return ff_qsv_encode(avctx, &q->qsv, pkt, frame, got_packet);
 }
 
 static av_cold int qsv_enc_close(AVCodecContext *avctx)
 {
-    QSVVP9EncContext *q = avctx->priv_data;
+    QSVMpeg2EncContext *q = avctx->priv_data;
 
     return ff_qsv_enc_close(avctx, &q->qsv);
 }
 
-#define OFFSET(x) offsetof(QSVVP9EncContext, x)
+#define OFFSET(x) offsetof(QSVMpeg2EncContext, x)
 #define VE AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_ENCODING_PARAM
 static const AVOption options[] = {
     QSV_COMMON_OPTS
 
-    { "profile",   NULL, OFFSET(qsv.profile), AV_OPT_TYPE_INT,   { .i64 = MFX_PROFILE_UNKNOWN },   0,       INT_MAX,  VE,  "profile" },
-    { "unknown",   NULL, 0,                   AV_OPT_TYPE_CONST, { .i64 = MFX_PROFILE_UNKNOWN},   INT_MIN,  INT_MAX,  VE,  "profile" },
-    { "profile0",  NULL, 0,                   AV_OPT_TYPE_CONST, { .i64 = MFX_PROFILE_VP9_0   },  INT_MIN,  INT_MAX,  VE,  "profile" },
-    { "profile1",  NULL, 0,                   AV_OPT_TYPE_CONST, { .i64 = MFX_PROFILE_VP9_1   },  INT_MIN,  INT_MAX,  VE,  "profile" },
-    { "profile2",  NULL, 0,                   AV_OPT_TYPE_CONST, { .i64 = MFX_PROFILE_VP9_2   },  INT_MIN,  INT_MAX,  VE,  "profile" },
-    { "profile3",  NULL, 0,                   AV_OPT_TYPE_CONST, { .i64 = MFX_PROFILE_VP9_3   },  INT_MIN,  INT_MAX,  VE,  "profile" },
+    { "profile", NULL, OFFSET(qsv.profile), AV_OPT_TYPE_INT, { .i64 = MFX_PROFILE_UNKNOWN }, 0, INT_MAX, VE, "profile" },
+    { "unknown", NULL, 0, AV_OPT_TYPE_CONST, { .i64 = MFX_PROFILE_UNKNOWN        }, INT_MIN, INT_MAX,     VE, "profile" },
+    { "simple",  NULL, 0, AV_OPT_TYPE_CONST, { .i64 = MFX_PROFILE_MPEG2_SIMPLE   }, INT_MIN, INT_MAX,     VE, "profile" },
+    { "main",    NULL, 0, AV_OPT_TYPE_CONST, { .i64 = MFX_PROFILE_MPEG2_MAIN     }, INT_MIN, INT_MAX,     VE, "profile" },
+    { "high",    NULL, 0, AV_OPT_TYPE_CONST, { .i64 = MFX_PROFILE_MPEG2_HIGH     }, INT_MIN, INT_MAX,     VE, "profile" },
 
     { NULL },
 };
 
 static const AVClass class = {
-    .class_name = "vp9_qsv encoder",
+    .class_name = "mpeg2_qsv encoder",
     .item_name  = av_default_item_name,
     .option     = options,
     .version    = LIBAVUTIL_VERSION_INT,
@@ -86,24 +84,28 @@ static const AVClass class = {
 static const AVCodecDefault qsv_enc_defaults[] = {
     { "b",         "1M"    },
     { "refs",      "0"     },
+    // same as the x264 default
     { "g",         "250"   },
+    { "bf",        "3"     },
     { "trellis",   "-1"    },
     { "flags",     "+cgop" },
+#if FF_API_PRIVATE_OPT
+    { "b_strategy", "-1"   },
+#endif
     { NULL },
 };
 
-AVCodec ff_vp9_qsv_encoder = {
-    .name           = "vp9_qsv",
-    .long_name      = NULL_IF_CONFIG_SMALL("VP9 video (Intel Quick Sync Video acceleration)"),
-    .priv_data_size = sizeof(QSVVP9EncContext),
+AVCodec ff_mpeg2_qsv_encoder = {
+    .name           = "mpeg2_qsv",
+    .long_name      = NULL_IF_CONFIG_SMALL("MPEG-2 video (Intel Quick Sync Video acceleration)"),
+    .priv_data_size = sizeof(QSVMpeg2EncContext),
     .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = AV_CODEC_ID_VP9,
+    .id             = AV_CODEC_ID_MPEG2VIDEO,
     .init           = qsv_enc_init,
     .encode2        = qsv_enc_frame,
     .close          = qsv_enc_close,
     .capabilities   = AV_CODEC_CAP_DELAY | AV_CODEC_CAP_HYBRID,
     .pix_fmts       = (const enum AVPixelFormat[]){ AV_PIX_FMT_NV12,
-                                                    AV_PIX_FMT_P010,
                                                     AV_PIX_FMT_QSV,
                                                     AV_PIX_FMT_NONE },
     .priv_class     = &class,

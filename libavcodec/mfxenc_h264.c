@@ -33,19 +33,19 @@
 #include "internal.h"
 #include "qsv.h"
 #include "qsv_internal.h"
-#include "qsvenc.h"
+#include "mfxenc.h"
 #include "atsc_a53.h"
 
 typedef struct QSVH264EncContext {
     AVClass *class;
-    QSVEncContext qsv;
+    MFXEncContext qsv;
 } QSVH264EncContext;
 
 static int qsv_h264_set_encode_ctrl(AVCodecContext *avctx,
                                     const AVFrame *frame, mfxEncodeCtrl* enc_ctrl)
 {
     QSVH264EncContext *qh264 = avctx->priv_data;
-    QSVEncContext *q = &qh264->qsv;
+    MFXEncContext *q = &qh264->qsv;
 
     if (q->a53_cc && frame) {
         mfxPayload* payload;
