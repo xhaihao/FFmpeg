@@ -41,7 +41,7 @@
 #include "decode.h"
 #include "qsv.h"
 #include "qsv_internal.h"
-#include "qsvdec.h"
+#include "mfxdec.h"
 
 const AVCodecHWConfigInternal *ff_qsv_hw_configs[] = {
     &(const AVCodecHWConfigInternal) {

@@ -44,7 +44,7 @@ static const HWContextType * const hw_table[] = {
 #if CONFIG_OPENCL
     &ff_hwcontext_type_opencl,
 #endif
-#if CONFIG_QSV
+#if CONFIG_LIBMFX
     &ff_hwcontext_type_qsv,
 #endif
 #if CONFIG_VAAPI

@@ -24,7 +24,7 @@
 
 #include "libavutil/mem.h"
 
-#if CONFIG_QSV
+#if CONFIG_LIBMFX
 #include "qsv.h"
 
 AVQSVContext *av_qsv_alloc_context(void)

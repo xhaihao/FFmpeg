@@ -619,7 +619,7 @@ extern const AVIOInterruptCB int_cb;
 
 extern const OptionDef options[];
 extern const HWAccel hwaccels[];
-#if CONFIG_QSV
+#if CONFIG_LIBMFX
 extern char *qsv_device;
 #endif
 extern HWDevice *filter_hw_device;
