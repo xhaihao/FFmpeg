@@ -69,6 +69,9 @@ static const struct {
     { MFX_PROFILE_HEVC_MAINSP,                  "mainsp"                },
     { MFX_PROFILE_HEVC_REXT,                    "rext"                  },
 #endif
+#if QSV_VERSION_ATLEAST(1, 32)
+    { MFX_PROFILE_HEVC_SCC,                     "scc"                   },
+#endif
 };
 
 static const char *print_profile(mfxU16 profile)
