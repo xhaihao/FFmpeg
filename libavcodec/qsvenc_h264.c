@@ -171,6 +171,7 @@ static const AVCodecDefault qsv_enc_defaults[] = {
     { "qmax",      "-1"    },
     { "trellis",   "-1"    },
     { "flags",     "+cgop" },
+    { "strict",     "-1"   },
     { NULL },
 };
 
