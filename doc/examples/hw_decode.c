@@ -74,7 +74,7 @@ static enum AVPixelFormat get_hw_format(AVCodecContext *ctx,
     return AV_PIX_FMT_NONE;
 }
 
-static int decode_write(AVCodecContext *avctx, AVPacket *packet)
+static int decode_write(AVCodecContext *avctx, AVPacket *packet, enum AVHWDeviceType type)
 {
     AVFrame *frame = NULL, *sw_frame = NULL;
     AVFrame *tmp_frame = NULL;
@@ -104,6 +104,11 @@ static int decode_write(AVCodecContext *avctx, AVPacket *packet)
             fprintf(stderr, "Error while decoding\n");
             goto fail;
         }
+
+        if (type == AV_HWDEVICE_TYPE_QSV)
+            av_assert0(frame->format == AV_PIX_FMT_QSV);
+        else if (type == AV_HWDEVICE_TYPE_VAAPI)
+            av_assert0(frame->format == AV_PIX_FMT_VAAPI);
 
         if (frame->format == hw_pix_fmt) {
             /* retrieve data from GPU to CPU */
@@ -191,6 +196,9 @@ int main(int argc, char *argv[])
     }
     video_stream = ret;
 
+    if (type == AV_HWDEVICE_TYPE_QSV)
+        decoder = avcodec_find_decoder_by_name("h264_qsv");
+
     for (i = 0;; i++) {
         const AVCodecHWConfig *config = avcodec_get_hw_config(decoder, i);
         if (!config) {
@@ -231,7 +239,7 @@ int main(int argc, char *argv[])
             break;
 
         if (video_stream == packet.stream_index)
-            ret = decode_write(decoder_ctx, &packet);
+            ret = decode_write(decoder_ctx, &packet, type);
 
         av_packet_unref(&packet);
     }
@@ -239,7 +247,7 @@ int main(int argc, char *argv[])
     /* flush the decoder */
     packet.data = NULL;
     packet.size = 0;
-    ret = decode_write(decoder_ctx, &packet);
+    ret = decode_write(decoder_ctx, &packet, type);
     av_packet_unref(&packet);
 
     if (output_file)

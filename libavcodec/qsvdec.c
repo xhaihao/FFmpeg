@@ -89,6 +89,7 @@ static const AVCodecHWConfigInternal *const qsv_hw_configs[] = {
         .public = {
             .pix_fmt     = AV_PIX_FMT_QSV,
             .methods     = AV_CODEC_HW_CONFIG_METHOD_HW_FRAMES_CTX |
+                           AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX |
                            AV_CODEC_HW_CONFIG_METHOD_AD_HOC,
             .device_type = AV_HWDEVICE_TYPE_QSV,
         },
