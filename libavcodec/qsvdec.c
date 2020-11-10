@@ -223,7 +223,8 @@ static int qsv_decode_preinit(AVCodecContext *avctx, QSVContext *q, enum AVPixel
     if (ret < 0) {
         q->orig_pix_fmt = avctx->pix_fmt = AV_PIX_FMT_NONE;
         return ret;
-    }
+    } else
+        avctx->pix_fmt = ret;
 
     if (!q->async_fifo) {
         q->async_fifo = av_fifo_alloc(q->async_depth * qsv_fifo_item_size());
