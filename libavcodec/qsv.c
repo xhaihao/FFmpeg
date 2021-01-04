@@ -36,8 +36,8 @@
 #include "qsv_internal.h"
 
 #define MFX_IMPL_VIA_MASK(impl) (0x0f00 & (impl))
-#define QSV_HAVE_USER_PLUGIN    !QSV_VERSION_ATLEAST(2, 0)
-#define QSV_HAVE_AUDIO          !QSV_VERSION_ATLEAST(2, 0)
+#define QSV_HAVE_USER_PLUGIN    !QSV_ONEVPL
+#define QSV_HAVE_AUDIO          !QSV_ONEVPL
 
 #if QSV_VERSION_ATLEAST(1, 12)
 #include "mfxvp8.h"
