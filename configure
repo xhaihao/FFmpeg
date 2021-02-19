@@ -6422,7 +6422,7 @@ enabled libmfx            && { { { check_pkg_config libmfx "libmfx < 2.0" "mfxvi
                                     "OPAQUE memory, multi-frame encode and LA_EXT rate control mode are enabled"; } ||
                                { require libmfx "mfxvideo.h" MFXInit "-llibmfx $advapi32_extralibs" && warn "using libmfx without pkg-config"; } }
 if enabled libmfx; then
-   check_cc MFX_CODEC_VP9 "mfxvp9.h mfxstructures.h" "MFX_CODEC_VP9"
+   check_cc MFX_CODEC_VP9 "mfxdefs.h mfxstructures.h" "MFX_CODEC_VP9"
 fi
 
 enabled libmodplug        && require_pkg_config libmodplug libmodplug libmodplug/modplug.h ModPlug_Load
