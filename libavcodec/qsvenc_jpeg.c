@@ -93,6 +93,7 @@ const AVCodec ff_mjpeg_qsv_encoder = {
                                                     AV_PIX_FMT_NONE },
     .priv_class     = &class,
     .defaults       = qsv_enc_defaults,
+    .caps_internal  = FF_CODEC_CAP_AUTO_THREADS,
     .wrapper_name   = "qsv",
     .hw_configs     = ff_qsv_enc_hw_configs,
 };

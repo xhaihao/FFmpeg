@@ -523,6 +523,10 @@ static int qsv_create_mfx_session(AVCodecContext *avctx,
     mfxInitParam init_par = { MFX_IMPL_AUTO_ANY };
     mfxSession session = NULL;
     mfxStatus sts;
+#if QSV_VERSION_ATLEAST(1, 15)
+    mfxExtBuffer *ext_params[1];
+    mfxExtThreadsParam thread_param;
+#endif
 
     av_log(avctx, AV_LOG_VERBOSE,
            "Use the Intel Media SDK to create MFX session, the required "
@@ -538,6 +542,15 @@ static int qsv_create_mfx_session(AVCodecContext *avctx,
     init_par.Implementation = implementation;
     init_par.Version = *pver;
     sts = MFXInitEx(init_par, &session);
+#if QSV_VERSION_ATLEAST(1, 15)
+    memset(&thread_param, 0, sizeof(thread_param));
+    thread_param.Header.BufferId = MFX_EXTBUFF_THREADS_PARAM;
+    thread_param.Header.BufferSz = sizeof(thread_param);
+    thread_param.NumThread       = FFMAX(2, avctx->thread_count);
+    ext_params[0]                = (mfxExtBuffer *)&thread_param;
+    init_par.ExtParam            = (mfxExtBuffer **)&ext_params;
+    init_par.NumExtParam         = 1;
+#endif
 
     if (sts < 0)
         return ff_qsv_print_error(avctx, sts,
