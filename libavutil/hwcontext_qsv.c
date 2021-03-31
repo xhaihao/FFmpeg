@@ -583,6 +583,11 @@ static int qsv_create_mfx_session(void *ctx,
     mfxVersion ver;
     mfxStatus sts;
     mfxSession session = NULL;
+    mfxInitParam init_par = { MFX_IMPL_AUTO_ANY };
+#if QSV_VERSION_ATLEAST(1, 15)
+    mfxExtBuffer *ext_params[1];
+    mfxExtThreadsParam thread_param;
+#endif
 
     av_log(ctx, AV_LOG_VERBOSE,
            "Use the Intel Media SDK to create MFX session, API version is "
@@ -592,7 +597,19 @@ static int qsv_create_mfx_session(void *ctx,
     *ploader = NULL;
     *psession = NULL;
     ver = *pver;
-    sts = MFXInit(implementation, &ver, &session);
+    init_par.Implementation = implementation;
+    init_par.Version        = ver;
+#if QSV_VERSION_ATLEAST(1, 15)
+    memset(&thread_param, 0, sizeof(thread_param));
+    thread_param.Header.BufferId = MFX_EXTBUFF_THREADS_PARAM;
+    thread_param.Header.BufferSz = sizeof(thread_param);
+    thread_param.NumThread       = 2;
+    ext_params[0]                = (mfxExtBuffer *)&thread_param;
+    init_par.ExtParam            = (mfxExtBuffer **)&ext_params;
+    init_par.NumExtParam         = 1;
+#endif
+
+    sts = MFXInitEx(init_par, &session);
 
     if (sts != MFX_ERR_NONE) {
         av_log(ctx, AV_LOG_ERROR, "Error initializing an MFX session: "
@@ -612,7 +629,8 @@ static int qsv_create_mfx_session(void *ctx,
            "version is %d.%d\n", ver.Major, ver.Minor);
 
     MFXClose(session);
-    sts = MFXInit(implementation, &ver, &session);
+    init_par.Version = ver;
+    sts = MFXInitEx(init_par, &session);
 
     if (sts != MFX_ERR_NONE) {
         av_log(ctx, AV_LOG_ERROR, "Error initializing an MFX session: "
