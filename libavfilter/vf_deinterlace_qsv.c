@@ -184,6 +184,11 @@ static int init_out_session(AVFilterContext *ctx)
     mfxVideoParam par;
     mfxStatus err;
     int i;
+    mfxInitParam init_par = { MFX_IMPL_AUTO_ANY };
+#if QSV_VERSION_ATLEAST(1, 15)
+    mfxExtBuffer *ext_params[1];
+    mfxExtThreadsParam thread_param;
+#endif
 
     /* extract the properties of the "master" session given to us */
     err = MFXQueryIMPL(device_hwctx->session, &impl);
@@ -211,7 +216,18 @@ static int init_out_session(AVFilterContext *ctx)
 
     /* create a "slave" session with those same properties, to be used for
      * actual deinterlacing */
-    err = MFXInit(impl, &ver, &s->session);
+    init_par.Implementation      = impl;
+    init_par.Version             = ver;
+#if QSV_VERSION_ATLEAST(1, 15)
+    memset(&thread_param, 0, sizeof(thread_param));
+    thread_param.Header.BufferId = MFX_EXTBUFF_THREADS_PARAM;
+    thread_param.Header.BufferSz = sizeof(thread_param);
+    thread_param.NumThread       = FFMAX(2, ctx->nb_threads);
+    ext_params[0]                = (mfxExtBuffer *)&thread_param;
+    init_par.ExtParam            = (mfxExtBuffer **)&ext_params;
+    init_par.NumExtParam         = 1;
+#endif
+    err = MFXInitEx(init_par, &s->session);
     if (err < 0)
         return ff_qsvvpp_print_error(ctx, err, "Error initializing a session for deinterlacing");
     else if (err > 0) {

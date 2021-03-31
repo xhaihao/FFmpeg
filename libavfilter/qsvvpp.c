@@ -518,6 +518,11 @@ static int init_vpp_session(AVFilterContext *avctx, QSVVPPContext *s)
     mfxVersion ver;
     mfxIMPL impl;
     int ret, i;
+    mfxInitParam init_par = { MFX_IMPL_AUTO_ANY };
+#if QSV_VERSION_ATLEAST(1, 15)
+    mfxExtBuffer *ext_params[1];
+    mfxExtThreadsParam thread_param;
+#endif
 
     if (inlink->hw_frames_ctx) {
         AVHWFramesContext *frames_ctx = (AVHWFramesContext *)inlink->hw_frames_ctx->data;
@@ -617,7 +622,18 @@ static int init_vpp_session(AVFilterContext *avctx, QSVVPPContext *s)
     }
 
     /* create a "slave" session with those same properties, to be used for vpp */
-    ret = MFXInit(impl, &ver, &s->session);
+    init_par.Implementation      = impl;
+    init_par.Version             = ver;
+#if QSV_VERSION_ATLEAST(1, 15)
+    memset(&thread_param, 0, sizeof(thread_param));
+    thread_param.Header.BufferId = MFX_EXTBUFF_THREADS_PARAM;
+    thread_param.Header.BufferSz = sizeof(thread_param);
+    thread_param.NumThread       = FFMAX(2, avctx->nb_threads);
+    ext_params[0]                = (mfxExtBuffer *)&thread_param;
+    init_par.ExtParam            = (mfxExtBuffer **)&ext_params;
+    init_par.NumExtParam         = 1;
+#endif
+    ret = MFXInitEx(init_par, &s->session);
     if (ret < 0)
         return ff_qsvvpp_print_error(avctx, ret, "Error initializing a session");
     else if (ret > 0) {
