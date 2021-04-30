@@ -294,7 +294,7 @@ static int overlay_vaapi_blend(FFFrameSync *fs)
 
     blend_state.flags = VA_BLEND_GLOBAL_ALPHA;
     blend_state.global_alpha = ctx->alpha;
-    subpic_params.blend_state = &blend_state;
+    subpic_params.blend_state = 0; // &blend_state;
 
     subpic_params.surface = (VASurfaceID)(uintptr_t)input_overlay->data[3];
     subpic_params.output_region = &overlay_region;
