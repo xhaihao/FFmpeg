@@ -172,32 +172,42 @@ int ff_vaapi_vpp_config_output(AVFilterLink *outlink)
         goto fail;
     }
 
-    outlink->hw_frames_ctx = av_hwframe_ctx_alloc(ctx->device_ref);
-    if (!outlink->hw_frames_ctx) {
-        av_log(avctx, AV_LOG_ERROR, "Failed to create HW frame context "
-               "for output.\n");
-        err = AVERROR(ENOMEM);
-        goto fail;
-    }
+    if (outlink->hw_frames_ctx) {
+        output_frames = (AVHWFramesContext*)outlink->hw_frames_ctx->data;
 
-    output_frames = (AVHWFramesContext*)outlink->hw_frames_ctx->data;
+        if (output_frames->format != AV_PIX_FMT_VAAPI) {
+            av_log(avctx, AV_LOG_ERROR, "Invalid sink pad \n");
+            err = AVERROR(EINVAL);
+            goto fail;
+        }
+    } else {
+        outlink->hw_frames_ctx = av_hwframe_ctx_alloc(ctx->device_ref);
+        if (!outlink->hw_frames_ctx) {
+            av_log(avctx, AV_LOG_ERROR, "Failed to create HW frame context "
+                   "for output.\n");
+            err = AVERROR(ENOMEM);
+            goto fail;
+        }
 
-    output_frames->format    = AV_PIX_FMT_VAAPI;
-    output_frames->sw_format = ctx->output_format;
-    output_frames->width     = ctx->output_width;
-    output_frames->height    = ctx->output_height;
+        output_frames = (AVHWFramesContext*)outlink->hw_frames_ctx->data;
 
-    output_frames->initial_pool_size = 4;
+        output_frames->format    = AV_PIX_FMT_VAAPI;
+        output_frames->sw_format = ctx->output_format;
+        output_frames->width     = ctx->output_width;
+        output_frames->height    = ctx->output_height;
 
-    err = ff_filter_init_hw_frames(avctx, outlink, 10);
-    if (err < 0)
-        goto fail;
+        output_frames->initial_pool_size = 4;
 
-    err = av_hwframe_ctx_init(outlink->hw_frames_ctx);
-    if (err < 0) {
-        av_log(avctx, AV_LOG_ERROR, "Failed to initialise VAAPI frame "
-               "context for output: %d\n", err);
-        goto fail;
+        err = ff_filter_init_hw_frames(avctx, outlink, 10);
+        if (err < 0)
+            goto fail;
+
+        err = av_hwframe_ctx_init(outlink->hw_frames_ctx);
+        if (err < 0) {
+            av_log(avctx, AV_LOG_ERROR, "Failed to initialise VAAPI frame "
+                   "context for output: %d\n", err);
+            goto fail;
+        }
     }
 
     va_frames = output_frames->hwctx;

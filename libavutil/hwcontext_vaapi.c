@@ -640,7 +640,9 @@ static int vaapi_frames_init(AVHWFramesContext *hwfc)
 
     err = vaapi_get_image_format(hwfc->device_ctx,
                                  hwfc->sw_format, &expected_format);
-    if (err == 0) {
+
+    /* Don't use vaDeriveImage */
+    if (0 /* err == 0 */) {
         vas = vaDeriveImage(hwctx->display, test_surface_id, &test_image);
         if (vas == VA_STATUS_SUCCESS) {
             if (expected_format->fourcc == test_image.format.fourcc) {
@@ -781,6 +783,7 @@ static int vaapi_map_frame(AVHWFramesContext *hwfc,
     VAStatus vas;
     void *address = NULL;
     int err, i;
+    // enum AVPixelFormat pix_fmt;
 
     surface_id = (VASurfaceID)(uintptr_t)src->data[3];
     av_log(hwfc, AV_LOG_DEBUG, "Map surface %#x.\n", surface_id);
@@ -795,6 +798,10 @@ static int vaapi_map_frame(AVHWFramesContext *hwfc,
         // Requested direct mapping but the formats do not match.
         return AVERROR(EINVAL);
     }
+
+    // pix_fmt = dst->format;
+    // if (dst->format == AV_PIX_FMT_VAAPI)
+    // pix_fmt = hwfc->sw_format;
 
     err = vaapi_get_image_format(hwfc->device_ctx, dst->format, &image_format);
     if (err < 0) {
@@ -904,6 +911,9 @@ fail:
     return err;
 }
 
+static int vaapi_transfer_data_to(AVHWFramesContext *hwfc,
+                                  AVFrame *dst, const AVFrame *src);
+
 static int vaapi_transfer_data_from(AVHWFramesContext *hwfc,
                                     AVFrame *dst, const AVFrame *src)
 {
@@ -913,10 +923,38 @@ static int vaapi_transfer_data_from(AVHWFramesContext *hwfc,
     if (dst->width > hwfc->width || dst->height > hwfc->height)
         return AVERROR(EINVAL);
 
+    if (0 && dst->format == AV_PIX_FMT_VAAPI && src->format == AV_PIX_FMT_VAAPI) {
+        AVVAAPIDeviceContext *hwctx = hwfc->device_ctx->hwctx;
+        VASurfaceID src_surface_id, dst_surface_id;
+        VACopyObject src_obj, dst_obj;
+        VACopyOption va_option;
+        VAStatus vas;
+
+        memset(&src_obj, 0, sizeof(src_obj));
+        src_obj.obj_type = VACopyObjectSurface;
+        src_obj.object.surface_id = (VASurfaceID)(uintptr_t)src->data[3];
+        memset(&dst_obj, 0, sizeof(dst_obj));
+        dst_obj.obj_type = VACopyObjectSurface;
+        dst_obj.object.surface_id = (VASurfaceID)(uintptr_t)dst->data[3];
+        va_option.value = 0;
+        vas = vaCopy(hwctx->display, &dst_obj, &src_obj, va_option);
+
+        if (vas != VA_STATUS_SUCCESS) {
+            av_log(hwfc, AV_LOG_DEBUG, "vaCopy failed, fallback to legacy mode\n");
+        } else
+            return 0;
+    }
+
     map = av_frame_alloc();
     if (!map)
         return AVERROR(ENOMEM);
-    map->format = dst->format;
+
+    if (dst->format == AV_PIX_FMT_VAAPI) {
+        AVHWFramesContext *dhwfc = (AVHWFramesContext *)dst->hw_frames_ctx->data;
+
+        map->format = dhwfc->sw_format;
+    } else
+        map->format = dst->format;
 
     err = vaapi_map_frame(hwfc, map, src, AV_HWFRAME_MAP_READ);
     if (err)
@@ -925,7 +963,12 @@ static int vaapi_transfer_data_from(AVHWFramesContext *hwfc,
     map->width  = dst->width;
     map->height = dst->height;
 
-    err = av_frame_copy(dst, map);
+    if (dst->format == AV_PIX_FMT_VAAPI) {
+        AVHWFramesContext *dhwfc = (AVHWFramesContext *)dst->hw_frames_ctx->data;
+
+        err = vaapi_transfer_data_to(dhwfc, dst, map);
+    } else
+        err = av_frame_copy(dst, map);
     if (err)
         goto fail;
 

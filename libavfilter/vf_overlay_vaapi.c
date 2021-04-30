@@ -36,6 +36,7 @@ typedef struct OverlayVAAPIContext {
     int              overlay_ow;
     int              overlay_oh;
     float            alpha;
+    int              use_input;
 } OverlayVAAPIContext;
 
 static int overlay_vaapi_query_formats(AVFilterContext *ctx)
@@ -214,10 +215,14 @@ static int overlay_vaapi_blend(FFFrameSync *fs)
     if (err < 0)
         return err;
 
-    err = ff_framesync_get_frame(fs, 0, &input_main, 0);
-    if (err < 0)
-        return err;
-    err = ff_framesync_get_frame(fs, 1, &input_overlay, 0);
+    if (!ctx->use_input) {
+        err = ff_framesync_get_frame(fs, 0, &input_main, 0);
+        if (err < 0)
+            return err;
+        err = ff_framesync_get_frame(fs, 1, &input_overlay, 0);
+    } else
+        err = ff_framesync_dualinput_get(fs, &input_main, &input_overlay);
+
     if (err < 0)
         return err;
 
@@ -232,15 +237,26 @@ static int overlay_vaapi_blend(FFFrameSync *fs)
     if (vpp_ctx->va_context == VA_INVALID_ID)
         return AVERROR(EINVAL);
 
-    output = ff_get_video_buffer(outlink, outlink->w, outlink->h);
-    if (!output) {
-        err = AVERROR(ENOMEM);
-        goto fail;
-    }
+    if (!ctx->use_input) {
+        output = ff_get_video_buffer(outlink, outlink->w, outlink->h);
 
-    err = av_frame_copy_props(output, input_main);
-    if (err < 0)
-        goto fail;
+        if (!output) {
+            err = AVERROR(ENOMEM);
+            goto fail;
+        }
+
+        err = av_frame_copy_props(output, input_main);
+        if (err < 0)
+            goto fail;
+    } else {
+        err = av_frame_make_writable(input_main);
+        if (err < 0) {
+            av_frame_free(&input_main);
+            return err;
+        }
+
+        output = input_main;
+    }
 
     err = ff_vaapi_vpp_init_params(avctx, &params,
                                    input_main, output);
@@ -323,9 +339,16 @@ static int overlay_vaapi_init_framesync(AVFilterContext *avctx)
 static int overlay_vaapi_config_output(AVFilterLink *outlink)
 {
     AVFilterContext  *avctx  = outlink->src;
+    AVFilterLink     *inlink = avctx->inputs[0];
     OverlayVAAPIContext *ctx = avctx->priv;
     VAAPIVPPContext *vpp_ctx = avctx->priv;
     int err;
+
+    if (ctx->use_input) {
+        outlink->hw_frames_ctx = av_buffer_ref(inlink->hw_frames_ctx);
+        if (!outlink->hw_frames_ctx)
+            return AVERROR(ENOMEM);
+    }
 
     err = overlay_vaapi_init_framesync(avctx);
     if (err < 0)
@@ -382,6 +405,8 @@ static const AVOption overlay_vaapi_options[] = {
       OFFSET(overlay_oh), AV_OPT_TYPE_INT, { .i64 = 0 }, 0, INT_MAX, .flags = FLAGS },
     { "alpha", "Overlay global alpha",
       OFFSET(alpha), AV_OPT_TYPE_FLOAT, { .dbl = 1.0}, 0.0, 1.0, .flags = FLAGS},
+    { "use_input", "use input main frame",
+      OFFSET(use_input), AV_OPT_TYPE_INT, { .i64 = 1 }, 0, 1, .flags = FLAGS},
     { NULL },
 };
 
