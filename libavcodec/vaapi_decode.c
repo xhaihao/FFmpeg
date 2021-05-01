@@ -592,8 +592,8 @@ static int vaapi_decode_make_config(AVCodecContext *avctx,
         AVHWFramesContext *frames = (AVHWFramesContext *)frames_ref->data;
 
         frames->format = AV_PIX_FMT_VAAPI;
-        frames->width = avctx->coded_width;
-        frames->height = avctx->coded_height;
+        frames->width = avctx->width;
+        frames->height = avctx->height;
 
         err = vaapi_decode_find_best_format(avctx, device,
                                             *va_config, frames);
