@@ -33,6 +33,7 @@
 
 #include "internal.h"
 #include "avfilter.h"
+#include "filters.h"
 #include "formats.h"
 #include "video.h"
 
@@ -96,6 +97,7 @@ static const AVOption overlay_qsv_options[] = {
         { "pass",   "Pass through the main input.", 0, AV_OPT_TYPE_CONST, { .i64 = EOF_ACTION_PASS },   .flags = FLAGS, "eof_action" },
     { "shortest", "force termination when the shortest input terminates", OFFSET(fs.opt_shortest), AV_OPT_TYPE_BOOL, { .i64 = 0 }, 0, 1, FLAGS },
     { "repeatlast", "repeat overlay of the last overlay frame", OFFSET(fs.opt_repeatlast), AV_OPT_TYPE_BOOL, {.i64=1}, 0, 1, FLAGS },
+    { "async_depth", "Internal parallelization depth, the higher the value the higher the latency.", OFFSET(qsv.async_depth), AV_OPT_TYPE_INT, { .i64 = 0 }, 0, INT_MAX, .flags = FLAGS },
     { NULL }
 };
 
@@ -240,6 +242,13 @@ static int process_frame(FFFrameSync *fs)
             ret = ff_qsvvpp_filter_frame(qsv, ctx->inputs[i], frame);
         if (ret < 0 && ret != AVERROR(EAGAIN))
             break;
+    }
+
+    if (ret == 0 && qsv->got_frame == 0) {
+        for (i = 0; i < ctx->nb_inputs; i++)
+            FF_FILTER_FORWARD_WANTED(ctx->outputs[0], ctx->inputs[i]);
+
+        ret = FFERROR_NOT_READY;
     }
 
     return ret;
