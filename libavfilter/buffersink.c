@@ -118,6 +118,7 @@ static int get_frame_internal(AVFilterContext *ctx, AVFrame *frame, int flags, i
     while (1) {
         ret = samples ? ff_inlink_consume_samples(inlink, samples, samples, &cur_frame) :
                         ff_inlink_consume_frame(inlink, &cur_frame);
+        av_log(ctx, AV_LOG_INFO, "the number of output frames: %ld\n", inlink->frame_count_out);
         if (ret < 0) {
             return ret;
         } else if (ret) {

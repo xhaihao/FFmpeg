@@ -310,6 +310,7 @@ static int activate(AVFilterContext *ctx)
 
     /* Buffered frames are available, so generate an output frame */
     if (s->frames_count > 0) {
+        av_log(ctx, AV_LOG_INFO, "The number of buffered frames is %d\n", s->frames_count);
         ret = write_frame(ctx, s, outlink, &again);
         /* Couldn't generate a frame, so schedule us to perform another step */
         if (again)
