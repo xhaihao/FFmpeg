@@ -214,15 +214,16 @@ static int qsv_decode_preinit(AVCodecContext *avctx, QSVContext *q, enum AVPixel
     mfxSession session = NULL;
     int iopattern = 0;
     int ret;
+    enum AVPixelFormat fmt;
     enum AVPixelFormat pix_fmts[3] = {
         AV_PIX_FMT_QSV, /* opaque format in case of video memory output */
         pix_fmt,        /* system memory format obtained from bitstream parser */
         AV_PIX_FMT_NONE };
 
-    ret = ff_get_format(avctx, pix_fmts);
-    if (ret < 0) {
+    fmt = ff_get_format(avctx, pix_fmts);
+    if (fmt == AV_PIX_FMT_NONE) {
         q->orig_pix_fmt = avctx->pix_fmt = AV_PIX_FMT_NONE;
-        return ret;
+        return AVERROR(EINVAL);
     }
 
     if (!q->async_fifo) {
@@ -237,6 +238,35 @@ static int qsv_decode_preinit(AVCodecContext *avctx, QSVContext *q, enum AVPixel
         iopattern         = user_ctx->iopattern;
         q->ext_buffers    = user_ctx->ext_buffers;
         q->nb_ext_buffers = user_ctx->nb_ext_buffers;
+    }
+
+    if (avctx->hw_device_ctx && !avctx->hw_frames_ctx && fmt == AV_PIX_FMT_QSV) {
+        AVHWFramesContext *hwframes_ctx;
+        AVQSVFramesContext *frames_hwctx;
+
+        avctx->hw_frames_ctx = av_hwframe_ctx_alloc(avctx->hw_device_ctx);
+
+        if (!avctx->hw_frames_ctx) {
+            av_log(avctx, AV_LOG_ERROR, "av_hwframe_ctx_alloc failed\n");
+            return AVERROR(ENOMEM);
+        }
+
+        hwframes_ctx = (AVHWFramesContext*)avctx->hw_frames_ctx->data;
+        frames_hwctx = hwframes_ctx->hwctx;
+        hwframes_ctx->width             = FFALIGN(avctx->coded_width,  32);
+        hwframes_ctx->height            = FFALIGN(avctx->coded_height, 32);
+        hwframes_ctx->format            = AV_PIX_FMT_QSV;
+        hwframes_ctx->sw_format         = avctx->sw_pix_fmt;
+        hwframes_ctx->initial_pool_size = 64 + avctx->extra_hw_frames;
+        frames_hwctx->frame_type        = MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET;
+
+        ret = av_hwframe_ctx_init(avctx->hw_frames_ctx);
+
+        if (ret < 0) {
+            av_log(NULL, AV_LOG_ERROR, "Error initializing a QSV frame pool\n");
+            av_buffer_unref(&avctx->hw_frames_ctx);
+            return ret;
+        }
     }
 
     if (avctx->hw_frames_ctx) {

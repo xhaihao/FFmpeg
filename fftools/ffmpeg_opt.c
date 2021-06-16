@@ -137,9 +137,6 @@ const HWAccel hwaccels[] = {
 #if CONFIG_VIDEOTOOLBOX
     { "videotoolbox", videotoolbox_init, HWACCEL_VIDEOTOOLBOX, AV_PIX_FMT_VIDEOTOOLBOX },
 #endif
-#if CONFIG_LIBMFX
-    { "qsv",   qsv_init,   HWACCEL_QSV,   AV_PIX_FMT_QSV },
-#endif
     { 0 },
 };
 HWDevice *filter_hw_device;
@@ -556,6 +553,21 @@ static int opt_sdp_file(void *optctx, const char *opt, const char *arg)
 
 #if CONFIG_VAAPI
 static int opt_vaapi_device(void *optctx, const char *opt, const char *arg)
+{
+    const char *prefix = "vaapi:";
+    char *tmp;
+    int err;
+    tmp = av_asprintf("%s%s", prefix, arg);
+    if (!tmp)
+        return AVERROR(ENOMEM);
+    err = hw_device_init_from_string(tmp, NULL);
+    av_free(tmp);
+    return err;
+}
+#endif
+
+#if CONFIG_VAAPI
+static int opt_qsv_device(void *optctx, const char *opt, const char *arg)
 {
     const char *prefix = "vaapi:";
     char *tmp;
@@ -3805,7 +3817,7 @@ const OptionDef options[] = {
 #endif
 
 #if CONFIG_QSV
-    { "qsv_device", HAS_ARG | OPT_STRING | OPT_EXPERT, { &qsv_device },
+    { "qsv_device", HAS_ARG | OPT_EXPERT, { .func_arg = opt_qsv_device },
         "set QSV hardware device (DirectX adapter index, DRM path or X11 display name)", "device"},
 #endif
 
